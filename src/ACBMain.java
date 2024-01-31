@@ -38,11 +38,11 @@ public class ACBMain {
 
 			case 5:
 
-				// dbaccessor.altaRevista();
+				csgoController.selectColumna();
 				break;
 
 			case 6:
-
+				csgoController.selectTabla();
 				break;
 
 			case 7:

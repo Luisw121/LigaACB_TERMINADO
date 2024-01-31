@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Scanner;
 import java.util.stream.Collectors;
@@ -13,6 +14,11 @@ public class CsgoController {
 
 	public CsgoController(Connection connection) {
 		this.connection = connection;
+		try {
+			this.st = connection.createStatement();
+		} catch (SQLException e) {
+			System.out.println("Error al crear el Statement: " + e.getMessage());
+		}
 
 	}
 	public void crearTablas() {
@@ -80,8 +86,8 @@ public class CsgoController {
 	public void rellenarTablas() {
 		rellenarArmas();
 		rellenarLlaves();
-		//rellenarSkins();
-		//rellenarCajas();
+		rellenarSkins();
+		rellenarCajas();
 		System.out.println("Se ha rellenado correctamente");
 	}
 	//Metodo para rellenar las tablas de armas en la base de datos
@@ -132,161 +138,123 @@ public class CsgoController {
 			System.out.println("Error al insertar los datos de armas en la tabla armas: " + e.getMessage());
 		}
 	}
-	//Metodo para rellenar llaves
+
 	public void rellenarLlaves() {
 		String csvFile = "src/CSV/datos_llaves.csv";
-		String line = "";
+
 		try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+			String sql = "INSERT INTO datos_llaves (Nombre_llave, Precio_llave, Caja_que_abre) VALUES (?, ?, ARRAY[?]::VARCHAR[]) ON CONFLICT DO NOTHING";
 
-			String sql = "INSERT INTO datos_llaves VALUES (?,?,?) ON CONFLICT DO NOTHING";
+			try (PreparedStatement pr = connection.prepareStatement(sql)) {
+				br.readLine(); // Leer la primera línea para ignorar los encabezados
 
-			pr = connection.prepareStatement(sql);
-			br.readLine(); //Leer la primera línea para ignorar los encabezados
+				String line;
+				while ((line = br.readLine()) != null) {
+					String[] data = line.split(","); // Ajusta el delimitador según tu formato CSV
 
-			while ((line = br.readLine()) != null) {
-				//Limpiar los parámetros antes de cada inserción
-				pr.clearParameters();
-				//Dividir la línea en datos utilizando la coma como delimitador
-				String[] data = line.split(",");
+					if (data.length >= 3) {
+						pr.setString(1, data[0].trim());
 
-				//Verificar la longitud del arreglo antes de acceder a los índices
-				if (data.length >= 3) {
-					// Establecer los parámetros en la sentencia SQL
-					pr.setString(1, data[0].replace("\"", ""));
-					pr.setFloat(2, parsePrecio(data[1].replace("\"", "")));
+						// Procesar el precio y convertirlo a BigDecimal
+						String precioStr = data[1].trim().replace("$", "");
+						BigDecimal precio = new BigDecimal(precioStr);
+						pr.setBigDecimal(2, precio);
 
-					//Obtener la lista de cajas y almacenarlas una por una
-					String[] cajas = data[2].split("\n");
-					for (String caja : cajas) {
-						//Establecer el parámetro en la sentencia SQL y ejecutar la inserción
-						pr.setString(3, caja.trim().replace("\"", ""));
-						try {
-							pr.executeUpdate();
-						} catch (SQLException e) {
-							//Manejar la excepción de SQL específicamente para la columna "Caja_que_abre"
-							if (e.getMessage().contains("ERROR: column \"caja_que_abre\" is of type integer")) {
-								System.out.println("Error al insertar los datos de llaves en la tabla llaves: Valor no válido para 'caja_que_abre'");
-							} else {
-								// Manejar otras excepciones de SQL
-								System.out.println("Error al insertar los datos de llaves en la tabla llaves: " + e.getMessage());
-							}
-						}
+						// Convertir el array de cajas a una lista y luego insertar cada caja
+						String[] cajas = data[2].split("\n");
+						pr.setArray(3, connection.createArrayOf("VARCHAR", cajas));
+						pr.executeUpdate();
+					} else {
+						System.out.println("Datos insuficientes para insertar en la tabla llaves: " + line);
 					}
-				} else {
-					//Manejar el caso en el que no haya suficientes elementos en el arreglo
-					System.out.println("Datos insuficientes para insertar en la tabla llaves: " + line);
-					continue; // Pasar a la siguiente iteración del bucle
 				}
+				System.out.println("Datos de llaves insertados correctamente en la tabla llaves");
 			}
-			System.out.println("Datos de llaves insertados correctamente");
 		} catch (Exception e) {
-			System.out.println("Error al insertar los datos de llaves en la tabla llaves: " + e.getMessage());
+			System.out.println("Error al insertar datos de llaves en la tabla llaves: " + e.getMessage());
 		}
 	}
 
 
-
-	private float parsePrecio(String precio) {
-		if (precio.trim().equals("-")) {
-			return 0.0f; // Manejar el caso en que el precio sea "-"
-		}
-
-		// Eliminar símbolo de dólar, espacios y comas antes de la conversión
-		precio = precio.replace("$", "").replace(",", "").trim();
-
-		try {
-			return Float.parseFloat(precio);
-		} catch (NumberFormatException e) {
-			System.out.println("Error al convertir el precio a un número: " + e.getMessage());
-			return 0.0f; // En caso de error, devolver un valor predeterminado
-		}
-	}
-
-
-
-	//Metodo para rellear las skins
-	public void rellenarSkins(){
+	// Método para rellenar las skins
+	public void rellenarSkins() {
 		String csvFile = "src/CSV/datos_skins.csv";
-		String line = "";
 
-		try(BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
-			String sql = "INSERT INTO datos_skins VALUES(?,?) ON CONFLICT DO NOTHING";
+		try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+			String sql = "INSERT INTO datos_skins (Nombre_caja, Nombre_skin) VALUES ((SELECT ID_caja FROM Nombre_Cajas WHERE Nombre_caja = ?), ?) ON CONFLICT DO NOTHING";
 
-			pr = connection.prepareStatement(sql);
+			try (PreparedStatement pr = connection.prepareStatement(sql)) {
+				br.readLine(); // Leer la primera línea para ignorar los encabezados
 
-			br.readLine();
+				String line;
+				while ((line = br.readLine()) != null) {
+					String[] data = line.split(","); // Ajusta el delimitador según tu formato CSV
 
-			while ((line = br.readLine())!=null) {
-				pr.clearParameters();
-
-				String[] data = line.split("\t");
-
-				if (data.length >= 2) {
-					pr.setString(1, data[0].trim());
-					pr.setString(2, data[1].trim());
-				}else {
-					System.out.println("Datos insuficientes para insertar en la tabla skins: " + line);
-					continue;
+					if (data.length >= 2) {
+						pr.setString(1, data[0].trim());
+						pr.setString(2, data[1].trim());
+						pr.executeUpdate();
+					} else {
+						System.out.println("Datos insuficientes para insertar en la tabla skins: " + line);
+					}
 				}
-				pr.executeUpdate();
+				System.out.println("Datos de Skins insertados correctamente en la tabla skin");
 			}
-			System.out.println("Datos de Skins insertados correctamente en la tabla skin");
-		}catch (Exception e) {
-			System.out.println("Error al insertar datos de skins en la tablas skins: " + e.getMessage());
+		} catch (SQLException e) {
+			System.out.println("Error al insertar datos de skins en la tabla skins: " + e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace(); // Imprime la traza completa del error
 		}
 	}
-	//Metodo para rellenar las cajas
-	public void rellenarCajas(){
+
+
+	// Método para rellenar las cajas
+	public void rellenarCajas() {
 		String csvFile = "src/CSV/nombre_cajas.csv";
-		String line = "";
 
-		try(BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
-			String sql = "INSERT INTO nombre_cajas VALUES(?) ON CONFLICT DO NOTHING";
+		try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+			String sql = "INSERT INTO nombre_cajas (Nombre_caja) VALUES (?) ON CONFLICT DO NOTHING";
 
-			pr = connection.prepareStatement(sql);
+			try (PreparedStatement pr = connection.prepareStatement(sql)) {
+				br.readLine(); // Leer la primera línea para ignorar los encabezados
 
-			br.readLine();
-			//Aqui vamos a leer cada línea del archivo CSV
-			while ((line = br.readLine()) != null) {
+				String line;
+				while ((line = br.readLine()) != null) {
+					String[] data = line.split(","); // Ajusta el delimitador según tu formato CSV
 
-				pr.clearParameters();
+					if (data.length >= 1) {
+						pr.setString(1, data[0].trim());
 
-				String[] data = line.split("\t");
-
-				pr.setInt(1, Integer.parseInt(data[2].replace("\"", "")));
-
-				//Ejecutamos la inserción
-				pr.executeUpdate();
+						pr.executeUpdate();
+					} else {
+						System.out.println("Datos insuficientes para insertar en la tabla cajas: " + line);
+					}
+				}
+				System.out.println("Datos de Cajas insertados correctamente en la tabla caja");
 			}
-			System.out.println("Datos de Cajas insertados correctamente en la tabla skin");
-		}catch (Exception e) {
-			System.out.println("Error al insertar datos de skins en la tabla skins: " +e.getMessage());
+		} catch (Exception e) {
+			System.out.println("Error al insertar datos de cajas en la tabla cajas: " + e.getMessage());
 		}
 	}
-
-}
-
-
-
-/*
-
-
-
 	//Metodo para mostrar los datos de una columna especifica de una tabla especifica de la bsd
+
 	public void selectColumna() {
 		try {
 			Scanner sc = new Scanner(System.in);
-			System.out.println("ESribre la tabla que quieres buscar: armas, llaves, skins, cajas");
+			System.out.println("Escribe la tabla que quieres buscar:Datos_Armas,Datos_Llaves,Datos_Skins,Nombre_Cajas");
 			String tabla = sc.next();
-			ResultSet rs2 = st.executeQuery("SELECT *" + "FROM" + tabla);
+
+			// Espacios adicionales agregados en las consultas SQL
+			ResultSet rs2 = st.executeQuery("SELECT * FROM " + tabla);
 			ResultSetMetaData metaData = rs2.getMetaData();
 			int columnCount = metaData.getColumnCount();
 			System.out.println();
 
-			//Bucle para imprimir el nombre de cada columna
-			for (int i = 1; i <=columnCount ; i++) {
-				System.out.println(metaData.getColumnName(i) + " ");
+			// Bucle para imprimir el nombre de cada columna
+			for (int i = 1; i <= columnCount; i++) {
+				System.out.print(metaData.getColumnName(i) + " ");
 			}
+
 			System.out.println();
 			System.out.println();
 			System.out.println("Por favor, escriba la columna que quiera buscar");
@@ -294,25 +262,26 @@ public class CsgoController {
 			String columna = sc.next();
 			System.out.println();
 
-			ResultSet rs = st.executeQuery("SELECT" + columna + "FROM" + tabla);
+			ResultSet rs = st.executeQuery("SELECT " + columna + " FROM " + tabla);
 			while (rs.next()) {
 				System.out.println(rs.getString(columna));
 			}
+
 			rs.close();
 			Thread.sleep(1000);
-		}catch (Exception e) {
-			System.out.println("Comprueba que se ha escrito bien: " +e.getMessage());
+		} catch (Exception e) {
+			System.out.println("Comprueba que se ha escrito bien: " + e.getMessage());
 		}
 	}
 	//Metodo par aseleccionar una tabla completa de una bsd y también mostrar el contenido en consola
 	public void selectTabla() {
 		try {
 			Scanner sc = new Scanner(System.in);
-			System.out.println("Escriba la tabla que quiera busca: armas, llaves, skins, cajas");
+			System.out.println("Escriba la tabla que quiera busca:Datos_Armas,Datos_Llaves,Datos_Skins,Nombre_Cajas");
 			String tabla = sc.next();
 			System.out.println();
 
-			ResultSet rs = st.executeQuery("SELECT *" + "FROM" + tabla);
+			ResultSet rs = st.executeQuery("SELECT *" + "FROM " + tabla);
 			ResultSetMetaData metaData = rs.getMetaData();
 			int columnCount = metaData.getColumnCount();
 			System.out.println();
@@ -336,4 +305,14 @@ public class CsgoController {
 			System.out.println("Comprueba que exsiste la tabla " + e.getMessage());
 		}
 	}
+}
+
+
+
+/*
+
+
+
+
+
  */

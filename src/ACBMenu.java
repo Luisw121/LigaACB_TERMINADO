@@ -20,8 +20,8 @@ public class ACBMenu {
 			System.out.println("2. Mostrar Tablas");
 			System.out.println("3. Eliminar Tablas");
 			System.out.println("4. Poblar las tablas ");
-			System.out.println("5. Seleccionar una tabla");
-			System.out.println("6. Mostra Tablas");
+			System.out.println("5. Seleccionar una columna");
+			System.out.println("6. Seleccionar una Tabla");
 			System.out.println("7. Assigna jugador a un equip");
 			System.out.println("8. Desvincula jugador d'un equip");
 			System.out.println("9. Carrega estadístiques");
