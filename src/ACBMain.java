@@ -46,11 +46,11 @@ public class ACBMain {
 				break;
 
 			case 7:
-				// dbaccessor.actualitzarTitolRevistes(conn);
+				csgoController.modificarRegistro();
 				break;
 
 			case 8:
-				// dbaccessor.afegeixArticleARevista(conn);
+				csgoController.borrarRegistro();
 				break;
 
 			case 9:

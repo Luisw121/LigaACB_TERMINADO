@@ -305,6 +305,120 @@ public class CsgoController {
 			System.out.println("Comprueba que exsiste la tabla " + e.getMessage());
 		}
 	}
+	// Método para mostrar todos los registros de una tabla
+	public void mostrarRegistros(String tabla) {
+		try (Statement st = connection.createStatement();
+			 ResultSet rs = st.executeQuery("SELECT * FROM " + tabla)) {
+
+			ResultSetMetaData metaData = rs.getMetaData();
+			int columnCount = metaData.getColumnCount();
+
+			System.out.println("Datos de la tabla " + tabla + ":");
+			for (int i = 1; i <= columnCount; i++) {
+				System.out.print(metaData.getColumnName(i) + "\t");
+			}
+			System.out.println();
+
+			while (rs.next()) {
+				for (int i = 1; i <= columnCount; i++) {
+					System.out.print(rs.getString(i) + "\t");
+				}
+				System.out.println();
+			}
+		} catch (SQLException e) {
+			System.out.println("Error al mostrar los registros de la tabla " + tabla + ": " + e.getMessage());
+		}
+	}
+
+	// Método para modificar el valor de una columna específica en un registro específico de cualquier tabla
+	public void modificarRegistro() {
+		Scanner scanner = new Scanner(System.in);
+		try {
+			Scanner sc = new Scanner(System.in);
+			System.out.println("Escribe la tabla que quieres modificar: Datos_Armas,Datos_Llaves,Datos_Skins,Nombre_Cajas");
+			String table = sc.nextLine();
+			ResultSet rs = st.executeQuery("SELECT *" + " FROM " + table);
+			ResultSetMetaData metaData = rs.getMetaData();
+			int columnCount = metaData.getColumnCount();
+			System.out.println();
+
+			for (int i = 1; i <= columnCount; i++) {
+				System.out.println(metaData.getColumnName(i) + " ");
+			}
+			System.out.println();
+
+			while (rs.next()) {
+				for (int i = 1; i <= columnCount; i++) {
+					System.out.println(rs.getString(i) + " ");
+				}
+				System.out.println();
+			}
+			System.out.println();
+			System.out.println("Introduce el nombre de la columna que quieres modificar");
+			String column = sc.nextLine();
+			System.out.println("Introduce el nuevo valor: ");
+			String value = sc.nextLine();
+			System.out.println("Introduce otra vez el nombre de la columna que quieres modificar ");
+			String columna = sc.nextLine();
+			System.out.println("Introduce el valor que deseas cambiar ");
+			String valor = sc.nextLine();
+
+			//sentencia
+			String sql = "UPDATE " + table + " SET " + column + " = "+"\'"+value+"\'"+" WHERE " + columna+" = "+"\'"+valor+"\'";
+			PreparedStatement statement = connection.prepareStatement(sql);
+
+			statement.executeUpdate();
+
+			int rows = statement.executeUpdate();
+			System.out.println("Se ha modificado " + rows + " fila(s).");
+			Thread.sleep(1000);
+		} catch (Exception e) {
+			System.out.println("Error al modificar el registro: " + e.getMessage());
+		}
+	}
+
+	public void borrarRegistro(){
+		try {
+			Scanner sc = new Scanner(System.in);
+			System.out.println("Escribe la tabla que quieres modificar: Datos_Armas,Datos_Llaves,Datos_Skins,Nombre_Cajas");
+			String tabla = sc.nextLine();
+
+			ResultSet rs = st.executeQuery("SELECT *" + " FROM " + tabla);
+			ResultSetMetaData metaData = rs.getMetaData();
+			int columnCount = metaData.getColumnCount();
+			System.out.println();
+			//imprimir el nombre de cada columna
+			for (int i = 1; i <=columnCount; i++) {
+				System.out.println(metaData.getColumnName(i) + " ");
+			}
+			System.out.println();
+
+			//recoremos cada fila del REsultSet
+			while (rs.next()) {
+				for (int i = 1; i <= columnCount; i++) {
+					System.out.println(rs.getString(i) + " ");
+				}
+				System.out.println();
+			}
+			System.out.println();
+			System.out.println("Introduce el nombre de la columna que quieres eliminar: ");
+			String columna = sc.nextLine();
+			System.out.println("Introduce el valor que quieres eliminar(se eliminaran todos los que tengan el mismo valor)");
+			String valor = sc.nextLine();
+
+			//sentencia
+			String sql = "DELETE FROM " + tabla + " WHERE " + columna + " = ?";
+			pr = connection.prepareStatement(sql);
+			pr.setString(1, valor);
+			pr.executeUpdate();
+
+			System.out.println("Se ha eliminado correctamente");
+			Thread.sleep(1000);
+		}catch (Exception e) {
+			System.out.println("No se ha podido eliminar : " + e.getMessage());
+			e.printStackTrace();
+		}
+	}
 }
 
 
