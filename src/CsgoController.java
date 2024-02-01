@@ -419,14 +419,48 @@ public class CsgoController {
 			e.printStackTrace();
 		}
 	}
+	public void borrarConjunto() throws SQLException {
+		Scanner scanner = new Scanner(System.in);
+
+		System.out.println("Escribe la tabla que quieres modificar: Datos_Armas,Datos_Llaves,Datos_Skins,Nombre_Cajas");
+		String tabla = scanner.nextLine();
+		ResultSet rs = st.executeQuery("SELECT *" + " FROM " + tabla);
+		ResultSetMetaData metaData = rs.getMetaData();
+		int columnCount = metaData.getColumnCount();
+		System.out.println();
+
+		for (int i = 1; i <= columnCount; i++) {
+			System.out.println(metaData.getColumnName(i) + " ");
+		}
+		System.out.println();
+
+		//recorremos cada fila de lresultset
+		while (rs.next()) {
+			for (int i = 1; i <= columnCount; i++) {
+				System.out.println(rs.getString(i) + " ");
+			}
+			System.out.println();
+		}
+		System.out.println();
+		System.out.println("Ingrese la columna objetivo: ");
+		String columnName = scanner.nextLine();
+
+		System.out.println("Introduce el operador que quieres usar (=, <, >, <=, >=, <>)");
+		String operador = scanner.nextLine();
+
+		System.out.println("Ingrese el valor del conjunto: ");
+		String valor = scanner.nextLine();
+
+		try {
+			String sql = "DELETE FROM " + tabla + " WHERE " + columnName + " " + operador + " " + valor;
+
+			PreparedStatement pr1 = connection.prepareStatement(sql);
+			int rowDeleted = pr1.executeUpdate();
+
+			System.out.println(rowDeleted + " filas eliminadas");
+			Thread.sleep(1000);
+		}catch (SQLException | InterruptedException e) {
+			System.out.println("Ocurrio un error: " + e.getMessage());
+		}
+	}
 }
-
-
-
-/*
-
-
-
-
-
- */

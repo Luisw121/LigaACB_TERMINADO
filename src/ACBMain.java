@@ -54,7 +54,7 @@ public class ACBMain {
 				break;
 
 			case 9:
-				// dbaccessor.desassignaArticleARevista(conn);
+				csgoController.borrarConjunto();
 				break;
 
 			case 10:
