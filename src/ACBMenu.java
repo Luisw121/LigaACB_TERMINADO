@@ -25,7 +25,6 @@ public class ACBMenu {
 			System.out.println("7. Modificar un registro");
 			System.out.println("8. Eliminar un registro");
 			System.out.println("9. Eliminar un conjunto");
-			System.out.println("10. Modificar registros");
 			System.out.println("Esculli opció: ");
 			try {
 				option = Integer.parseInt(br.readLine());

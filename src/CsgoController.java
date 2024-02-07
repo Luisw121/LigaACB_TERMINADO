@@ -403,7 +403,7 @@ public class CsgoController {
 			System.out.println();
 			System.out.println("Introduce el nombre de la columna que quieres eliminar: ");
 			String columna = sc.nextLine();
-			System.out.println("Introduce el valor que quieres eliminar(se eliminaran todos los que tengan el mismo valor)");
+			System.out.println("Introduce el valor que quieres eliminar");
 			String valor = sc.nextLine();
 
 			//sentencia
@@ -452,8 +452,8 @@ public class CsgoController {
 		String valor = scanner.nextLine();
 
 		try {
-			String sql = "DELETE FROM " + tabla + " WHERE " + columnName + " " + operador + " " + valor;
-
+			String sql = "DELETE FROM " + tabla + " WHERE " + columnName + " " + operador + " '" + valor+"'";
+			System.out.println(sql);
 			PreparedStatement pr1 = connection.prepareStatement(sql);
 			int rowDeleted = pr1.executeUpdate();
 
