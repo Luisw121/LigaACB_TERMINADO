@@ -32,7 +32,6 @@ public class ACBMenu {
 			} catch (NumberFormatException | IOException e) {
 				System.out.println("valor no vàlid");
 				e.printStackTrace();
-
 			}
 
 		} while (option != 1 && option != 2 && option != 3 && option != 4 && option != 5 && option != 6 && option != 7
